@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
 require "midwife/version"
 
@@ -17,6 +16,8 @@ Gem::Specification.new do |s|
   s.add_dependency "rb-fsevent", "~> 0.9.1"
   s.add_dependency "haml", "3.1.7"
   s.add_dependency "sass", "3.2.1"
+  s.add_dependency "rack", "1.4.1"
+  s.add_dependency "rack-contrib", "1.1.0"
 
   s.files         = `git ls-files`.split("\n")
   s.require_paths = ["lib"]

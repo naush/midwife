@@ -12,7 +12,27 @@ module Midwife
 
     CLEAN.include HTML + CSS
 
+    CONFIG = <<FILE
+require 'rack'
+require 'rack/contrib/try_static'
+
+use Rack::TryStatic, :root => "public",
+                     :urls => %w[/],
+                     :try => ['.html', 'index.html', '/index.html']
+
+run lambda { |env| [404, {'Content-type' => 'text/plain'}, ['Not found']] }
+FILE
+
     def self.build
+      desc 'Setup your environment'
+      task :setup do
+        FileUtils.mkdir_p(ASSETS) unless File.exists?(ASSETS)
+        FileUtils.mkdir_p(PUBLIC) unless File.exists?(PUBLIC)
+        File.open("config.ru", "w") do |file|
+          file.write(CONFIG)
+        end
+      end
+
       desc 'Care for your haml/scss'
       task :care => HTML + CSS
 
