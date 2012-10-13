@@ -23,13 +23,24 @@ use Rack::TryStatic, :root => "public",
 run lambda { |env| [404, {'Content-type' => 'text/plain'}, ['Not found']] }
 FILE
 
+    GEMFILE = <<FILE
+source :rubygems
+
+gem 'midwife'
+FILE
+
     def self.build
       desc 'Setup your environment'
       task :setup do
         FileUtils.mkdir_p(ASSETS) unless File.exists?(ASSETS)
         FileUtils.mkdir_p(PUBLIC) unless File.exists?(PUBLIC)
+
         File.open("config.ru", "w") do |file|
           file.write(CONFIG)
+        end
+
+        File.open("Gemfile", "w") do |file|
+          file.write(GEMFILE)
         end
       end
 
@@ -41,6 +52,7 @@ FILE
         Listen.to(ASSETS) do |modified, added, removed|
           (modified + added).each do |source|
             extension = File.extname(source)
+
             if extension == '.haml'
               target = source.ext('html')
               compile('haml', source, target)
@@ -49,6 +61,7 @@ FILE
               compile('sass', source, target)
             end
           end
+
           removed.each do |source|
             destination = source.gsub(ASSETS, PUBLIC).ext('html')
             File.delete(destination)
