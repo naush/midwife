@@ -9,39 +9,19 @@ module Midwife
 
     ASSETS = 'assets'
     PUBLIC = 'public'
+    CONFIG = "config.ru"
+    GEMFILE = "Gemfile"
 
     CLEAN.include HTML + CSS
-
-    CONFIG = <<FILE
-require 'rack'
-require 'rack/contrib/try_static'
-
-use Rack::TryStatic, :root => "public",
-                     :urls => %w[/],
-                     :try => ['.html', 'index.html', '/index.html']
-
-run lambda { |env| [404, {'Content-type' => 'text/plain'}, ['Not found']] }
-FILE
-
-    GEMFILE = <<FILE
-source :rubygems
-
-gem 'midwife'
-FILE
 
     def self.build
       desc 'Setup your environment'
       task :setup do
         FileUtils.mkdir_p(ASSETS) unless File.exists?(ASSETS)
         FileUtils.mkdir_p(PUBLIC) unless File.exists?(PUBLIC)
-
-        File.open("config.ru", "w") do |file|
-          file.write(CONFIG)
-        end
-
-        File.open("Gemfile", "w") do |file|
-          file.write(GEMFILE)
-        end
+        current = File.expand_path(File.dirname(__FILE__))
+        FileUtils.cp(current + "/templates/" + CONFIG, CONFIG) unless File.exists?(CONFIG)
+        FileUtils.cp(current + "/templates/" + GEMFILE, GEMFILE) unless File.exists?(GEMFILE)
       end
 
       desc 'Care for your haml/scss'
