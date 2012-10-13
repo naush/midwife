@@ -12,8 +12,6 @@ module Midwife
     CONFIG = "config.ru"
     GEMFILE = "Gemfile"
 
-    CLEAN.include HTML + CSS
-
     class << self
       def build
         desc 'Setup your environment'
