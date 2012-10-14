@@ -1,4 +1,6 @@
 require 'listen'
+require 'haml'
+require 'sass'
 
 module Midwife
   class Tasks
@@ -11,6 +13,11 @@ module Midwife
     PUBLIC = 'public'
     CONFIG = "config.ru"
     GEMFILE = "Gemfile"
+
+    TEMPLATE_ENGINES = {
+      :haml => Haml::Engine,
+      :scss => Sass::Engine
+    }
 
     class << self
       def build
@@ -33,18 +40,29 @@ module Midwife
         end
 
         rule '.html' => '.haml' do |t|
-          compile("haml", t.source, t.name)
+          compile(:haml, t.source, t.name)
         end
 
         rule '.css' => '.scss' do |t|
-          compile("sass", t.source, t.name)
+          compile(:scss, t.source, t.name)
         end
       end
 
-      def compile(command, source, target)
+      def compile(syntax, source, target)
         destination = target.gsub(ASSETS, PUBLIC)
         FileUtils.mkdir_p(File.dirname(destination))
-        sh "#{command} #{source} #{destination}"
+        template = File.read(source)
+        output = TEMPLATE_ENGINES[syntax].new(template, :syntax => syntax).render
+
+        File.open(destination, 'w') do |file|
+          file.write(output)
+        end
+
+        puts "#{syntax}: convert #{source} to #{destination}."
+      rescue Exception => e
+        puts "#{syntax}: failed to convert #{source} to #{destination}."
+        puts e.message
+        puts e.backtrace.first
       end
 
       def setup
@@ -64,15 +82,20 @@ module Midwife
 
             if extension == '.haml'
               target = source.ext('html')
-              compile('haml', source, target)
+              compile(:haml, source, target)
             elsif extension == '.scss'
               target = source.ext('css')
-              compile('sass', source, target)
+              compile(:scss, source, target)
             end
           end
 
           removed.each do |source|
-            destination = source.gsub(ASSETS, PUBLIC).ext('html')
+            extension = File.extname(source)
+            if extension == '.haml'
+              destination = source.gsub(ASSETS, PUBLIC).ext('html')
+            elsif extension == '.scss'
+              destination = source.gsub(ASSETS, PUBLIC).ext('css')
+            end
             File.delete(destination)
           end
         end
