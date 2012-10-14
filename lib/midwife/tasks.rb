@@ -1,61 +1,56 @@
 require 'haml'
 require 'listen'
 require 'sass'
+require 'uglifier'
 
 module Midwife
   class Tasks
-    HAML = FileList['**/*.haml']
-    HTML = HAML.ext('html')
-    SCSS = FileList['**/*.scss']
-    CSS = SCSS.ext('css')
-
     ASSETS = 'assets'
     PUBLIC = 'public'
     CONFIG = "config.ru"
     GEMFILE = "Gemfile"
 
+    HAML = FileList[ASSETS + '/**/*.haml']
+    SCSS = FileList[ASSETS + '/**/*.scss']
+    JS   = FileList[ASSETS + '/**/*.js']
+
+    EXT_SYNTAX = {
+      '.haml' => { :ext => 'html', :syntax => :haml },
+      '.scss' => { :ext => 'css', :syntax => :scss },
+      '.js'   => { :ext => 'js', :syntax => :js }
+    }
+
     class << self
       def build
+        desc 'Care for your haml/scss/js'
+        task(:care) { care }
+
+        desc 'Listen to your haml/scss/js'
+        task(:listen) { listen }
+
         desc 'Setup your environment'
-        task :setup do
-          setup
-        end
+        task(:setup) { setup }
 
-        desc 'Care for your haml/scss'
-        task :care => HTML + CSS
-
-        desc 'Listen to your haml/scss'
-        task :listen do
-          listen
-        end
-
-        desc 'Serve your haml/scss'
-        task :serve do
-          serve
-        end
-
-        rule '.html' => '.haml' do |t|
-          render(:haml, t.source, t.name)
-        end
-
-        rule '.css' => '.scss' do |t|
-          render(:scss, t.source, t.name)
-        end
+        desc 'Serve your haml/scss/js'
+        task(:serve) { serve }
       end
 
-      def render(syntax, source, target)
+      def render(source)
         return if source.split("/").last.match(/^\_/)
 
-        source_dir = File.dirname(source)
-        destination = target.gsub(ASSETS, PUBLIC)
+        extension = File.extname(source)
+        ext_syntax = EXT_SYNTAX[extension]
+        syntax = ext_syntax[:syntax]
+        destination = source.ext(ext_syntax[:ext]).gsub(ASSETS, PUBLIC)
         FileUtils.mkdir_p(File.dirname(destination))
-        template = File.read(source)
 
-        if syntax == :haml
-          output = Haml::Engine.new(template).render(Helpers.new(source_dir))
-        elsif syntax == :scss
-          output = Sass::Engine.new(template, :syntax => syntax).render
-        end
+        helpers = Helpers.new(File.dirname(source))
+        template = File.read(source)
+        output = case syntax
+                 when :haml; Haml::Engine.new(template, {:format => :html5, :ugly => true}).render(helpers)
+                 when :scss; Sass::Engine.new(template, {:syntax => syntax, :style => :compressed}).render
+                 when :js; Uglifier.compile(template)
+                 end
 
         File.open(destination, 'w') do |file|
           file.write(output)
@@ -68,6 +63,32 @@ module Midwife
         puts e.backtrace.first
       end
 
+      def care
+        (HAML + SCSS + JS).each do |source|
+          render(source)
+        end
+      end
+
+      def listen
+        trap (:SIGINT) { exit }
+
+        Listen.to(ASSETS) do |modified, added, removed|
+          (modified + added).each do |source|
+            render(source)
+          end
+
+          removed.each do |source|
+            extension = File.extname(source)
+            destination = case extension
+                          when '.haml'; source.gsub(ASSETS, PUBLIC).ext('html')
+                          when '.scss'; source.gsub(ASSETS, PUBLIC).ext('css')
+                          when '.js'; source.gsub(ASSETS, PUBLIC)
+                          end
+            File.delete(destination)
+          end
+        end
+      end
+
       def setup
         FileUtils.mkdir_p(ASSETS) unless File.exists?(ASSETS)
         FileUtils.mkdir_p(PUBLIC) unless File.exists?(PUBLIC)
@@ -76,34 +97,6 @@ module Midwife
 
         FileUtils.cp("#{current_dir}/templates/#{CONFIG}", CONFIG) unless File.exists?(CONFIG)
         FileUtils.cp("#{current_dir}/templates/#{GEMFILE}", GEMFILE) unless File.exists?(GEMFILE)
-      end
-
-      def listen
-        trap (:SIGINT) { exit }
-
-        Listen.to(ASSETS) do |modified, added, removed|
-          (modified + added).each do |source|
-            extension = File.extname(source)
-
-            if extension == '.haml'
-              target = source.ext('html')
-              render(:haml, source, target)
-            elsif extension == '.scss'
-              target = source.ext('css')
-              render(:scss, source, target)
-            end
-          end
-
-          removed.each do |source|
-            extension = File.extname(source)
-            if extension == '.haml'
-              destination = source.gsub(ASSETS, PUBLIC).ext('html')
-            elsif extension == '.scss'
-              destination = source.gsub(ASSETS, PUBLIC).ext('css')
-            end
-            File.delete(destination)
-          end
-        end
       end
 
       def serve

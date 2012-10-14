@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.add_dependency "sass", "3.2.1"
   s.add_dependency "rack", "1.4.1"
   s.add_dependency "rack-contrib", "1.1.0"
+  s.add_dependency "uglifier", "1.3.0"
 
   s.files         = `git ls-files`.split("\n")
   s.require_paths = ["lib"]
