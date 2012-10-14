@@ -14,11 +14,6 @@ module Midwife
     CONFIG = "config.ru"
     GEMFILE = "Gemfile"
 
-    TEMPLATE_ENGINES = {
-      :haml => Haml::Engine,
-      :scss => Sass::Engine
-    }
-
     class << self
       def build
         desc 'Setup your environment'
@@ -52,7 +47,12 @@ module Midwife
         destination = target.gsub(ASSETS, PUBLIC)
         FileUtils.mkdir_p(File.dirname(destination))
         template = File.read(source)
-        output = TEMPLATE_ENGINES[syntax].new(template, :syntax => syntax).render
+
+        if syntax == :haml
+          output = Haml::Engine.new(template).render
+        elsif syntax == :scss
+          output = Sass::Engine.new(template, :syntax => syntax).render
+        end
 
         File.open(destination, 'w') do |file|
           file.write(output)
@@ -76,6 +76,8 @@ module Midwife
       end
 
       def listen
+        trap (:SIGINT) { exit }
+
         Listen.to(ASSETS) do |modified, added, removed|
           (modified + added).each do |source|
             extension = File.extname(source)
@@ -102,7 +104,6 @@ module Midwife
       end
 
       def serve
-        trap('SIGINT') {}
         fork { listen }
         `rackup`
       end
