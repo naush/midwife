@@ -1,5 +1,5 @@
-require 'listen'
 require 'haml'
+require 'listen'
 require 'sass'
 
 module Midwife
@@ -35,21 +35,24 @@ module Midwife
         end
 
         rule '.html' => '.haml' do |t|
-          compile(:haml, t.source, t.name)
+          render(:haml, t.source, t.name)
         end
 
         rule '.css' => '.scss' do |t|
-          compile(:scss, t.source, t.name)
+          render(:scss, t.source, t.name)
         end
       end
 
-      def compile(syntax, source, target)
+      def render(syntax, source, target)
+        return if source.split("/").last.match(/^\_/)
+
+        source_dir = File.dirname(source)
         destination = target.gsub(ASSETS, PUBLIC)
         FileUtils.mkdir_p(File.dirname(destination))
         template = File.read(source)
 
         if syntax == :haml
-          output = Haml::Engine.new(template).render
+          output = Haml::Engine.new(template).render(Helpers.new(source_dir))
         elsif syntax == :scss
           output = Sass::Engine.new(template, :syntax => syntax).render
         end
@@ -84,10 +87,10 @@ module Midwife
 
             if extension == '.haml'
               target = source.ext('html')
-              compile(:haml, source, target)
+              render(:haml, source, target)
             elsif extension == '.scss'
               target = source.ext('css')
-              compile(:scss, source, target)
+              render(:scss, source, target)
             end
           end
 
