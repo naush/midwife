@@ -42,13 +42,14 @@ module Midwife
         ext_syntax = EXT_SYNTAX[extension]
         syntax = ext_syntax[:syntax]
         destination = source.ext(ext_syntax[:ext]).gsub(ASSETS, PUBLIC)
+        source_dir = File.dirname(source)
         FileUtils.mkdir_p(File.dirname(destination))
 
-        helpers = Helpers.new(File.dirname(source))
+        helpers = Helpers.new(source_dir)
         template = File.read(source)
         output = case syntax
                  when :haml; Haml::Engine.new(template, {:format => :html5, :ugly => true}).render(helpers)
-                 when :scss; Sass::Engine.new(template, {:syntax => syntax, :style => :compressed}).render
+                 when :scss; Sass::Engine.new(template, {:syntax => syntax, :style => :compressed, :load_paths => [source_dir]}).render
                  when :js; Uglifier.compile(template)
                  end
 
