@@ -19,14 +19,11 @@ The rest:
 
 ## Usage
 
-    rake care    # Care for your haml/scss/js
-    rake listen  # Listen to your haml/scss/js
-    rake serve   # Serve your haml/scss/js
-    rake setup   # Setup your environment
-
----
-
-Make an `assets` folder, and drop your haml, scss and js files in there. Running `rake care` will process haml, scss and js files once, and drop the artifacts into the `public` fodler. Run `rake listen` will process each time you touch the files. Run `rake serve` to start a web server running on [localhost:9292](http://localhost:9292) that listens to every change you make.
+- `rake care` processes `haml`, `scss` and `js` files once, and drops the artifacts in `public`.
+- `rake listen` processes each time you touch the files.
+- `rake serve` starts a web server running on [localhost:9292](http://localhost:9292) and listens to every change you make.
+- `rake setup` sets up your environment.
+- `rake stitch` composes `png` files in `assets/images` into a single file and drop it in `public/images`, as well as creates a complimentary partial `_sprites.scss` in `assets/stylesheets`, which you can import into your scss.
 
 ## Helpers
 
@@ -40,3 +37,7 @@ Make an `assets` folder, and drop your haml, scss and js files in there. Running
     $ heroku create app_name
     $ git push heroku master
     $ heroku open
+
+## Example
+
+- [manifesto_front](https://github.com/naush/manifesto_front)
